@@ -1,0 +1,122 @@
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'big_picture', plugin: 'redmine_big_picture' %>
+  <%= javascript_include_tag 'big_picture', plugin: 'redmine_big_picture' %>
+<% end %>
+
+<% ts = @issue.bp_total_score; dr = @issue.bp_dev_readiness %>
+
+<div class="bp-detail-head">
+  <p>
+    <%= link_to "&laquo; #{l(:bp_priorities)}".html_safe, big_picture_path %> &nbsp;|&nbsp;
+    <%= link_to l(:bp_calendar), big_picture_calendar_path %>
+  </p>
+  <h2><%= @issue.subject %></h2>
+  <p class="bp-sub">
+    <span class="bp-status" style="background: <%= bp_status_color(@issue.status.name) %>;"><%= @issue.status.name %></span>
+    &nbsp;&middot;&nbsp; <%= link_to l(:bp_open_parent, id: @issue.id), issue_path(@issue), class: 'icon icon-edit' %>
+  </p>
+</div>
+
+<div class="bp-metrics">
+  <div class="bp-metric">
+    <div class="bp-metric-label"><%= l(:bp_opp_total_score) %></div>
+    <div class="bp-metric-value" id="bp-ts"><%= ts ? ('%.1f' % ts) : '–' %></div>
+  </div>
+  <div class="bp-metric">
+    <div class="bp-metric-label"><%= l(:bp_dev_readiness) %></div>
+    <div class="bp-metric-value" id="bp-dr" style="color: <%= bp_readiness_color(dr) %>;"><%= dr ? "#{dr} %" : '–' %></div>
+  </div>
+</div>
+
+<div class="bp-columns">
+  <div class="bp-col">
+    <h3><%= l(:bp_opportunity) %></h3>
+    <div class="bp-opportunity">
+      <% if @issue.description.present? %>
+        <%= textilizable(@issue, :description) %>
+      <% else %>
+        <em><%= l(:bp_no_description) %></em>
+      <% end %>
+    </div>
+
+    <h3><%= l(:bp_project_evidence) %></h3>
+    <%= form_tag big_picture_update_evidence_path, method: :post, class: 'bp-evidence-form' do %>
+      <%= hidden_field_tag :issue_id, @issue.id %>
+      <%= url_field_tag :evidence, @evidence_value, placeholder: 'https://…', size: 42 %>
+      <%= submit_tag l(:bp_evidence_save), name: nil %>
+    <% end %>
+    <% if @evidence_value.present? %>
+      <p class="bp-evidence-link">
+        <% if @evidence_value =~ %r{\Ahttps?://}i %>
+          <%= link_to @evidence_value, @evidence_value, target: '_blank', rel: 'noopener' %>
+        <% else %>
+          <%= @evidence_value %>
+        <% end %>
+      </p>
+    <% end %>
+
+    <h3><%= l(:bp_scoring) %></h3>
+    <table class="list bp-scoring">
+      <% RedmineBigPicture.stakeholders.each do |sh| %>
+        <% rec = @scores[sh] %>
+        <tr>
+          <td class="bp-sh"><%= sh %></td>
+          <td>
+            <select class="bp-score-select" data-url="<%= big_picture_update_score_path %>"
+                    data-issue="<%= @issue.id %>" data-stakeholder="<%= sh %>">
+              <option value="" <%= 'selected' if rec.nil? || rec.score.nil? %>><%= l(:bp_no_score) %></option>
+              <% (1..3).each do |n| %>
+                <option value="<%= n %>" <%= 'selected' if rec&.score == n %>><%= n %></option>
+              <% end %>
+            </select>
+          </td>
+          <td class="bp-scoredby">
+            <% if rec&.scored_by %><small><%= rec.scored_by.name %>, <%= format_date(rec.updated_at) %></small><% end %>
+          </td>
+        </tr>
+      <% end %>
+    </table>
+  </div>
+
+  <div class="bp-col">
+    <h3><%= l(:bp_progress) %></h3>
+    <table class="list bp-phases">
+      <% RedmineBigPicture.phases.each do |ph| %>
+        <% rec = @phases[ph]; state = rec&.state || 'NO' %>
+        <tr>
+          <td class="bp-ph"><%= ph %></td>
+          <td>
+            <select class="bp-phase-select <%= bp_state_class(state) %>" data-url="<%= big_picture_update_phase_path %>"
+                    data-issue="<%= @issue.id %>" data-phase="<%= ph %>">
+              <% BpPhase::STATES.each do |st| %>
+                <option value="<%= st %>" <%= 'selected' if state == st %>><%= st %></option>
+              <% end %>
+            </select>
+          </td>
+        </tr>
+      <% end %>
+    </table>
+
+    <h3><%= l(:bp_planning) %></h3>
+    <table class="list bp-alloc-list">
+      <% @allocations.each do |a| %>
+        <tr>
+          <td><%= a.month %></td>
+          <td><%= a.user.name %></td>
+          <td><%= a.label %></td>
+          <td><%= button_to l(:bp_remove), big_picture_remove_allocation_path(a), method: :delete,
+                            form_class: 'bp-inline', data: { confirm: l(:bp_confirm_remove_alloc) } %></td>
+        </tr>
+      <% end %>
+    </table>
+    <%= form_tag big_picture_add_allocation_path, method: :post, class: 'bp-alloc-form' do %>
+      <%= hidden_field_tag :issue_id, @issue.id %>
+      <%= select_tag :user_id,
+            options_from_collection_for_select(@issue.assignable_users.sort_by(&:name), :id, :name),
+            include_blank: l(:bp_ph_person) %>
+      <input type="month" name="month" required />
+      <%= text_field_tag :label, nil, placeholder: l(:bp_ph_note_example), size: 22 %>
+      <%= submit_tag l(:bp_add_to_plan), name: nil %>
+    <% end %>
+  </div>
+</div>

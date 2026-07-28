@@ -1,0 +1,17 @@
+# GDPR: nikdy necommitovať dumpy DB ani osobné údaje
+*.dump
+*.sql
+*.sqlite*
+
+# tajomstvá / lokálne prostredie
+*.env
+.env*
+
+# logy a dočasné súbory
+*.log
+tmp/
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db

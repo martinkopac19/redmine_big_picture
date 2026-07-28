@@ -1,0 +1,97 @@
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'big_picture', plugin: 'redmine_big_picture' %>
+<% end %>
+
+<div class="bp-nav">
+  <h2>Big Picture &ndash; <%= l(:bp_priorities) %></h2>
+  <%= link_to "#{l(:bp_calendar)} &raquo;".html_safe, big_picture_calendar_path, class: 'bp-navlink' %>
+</div>
+
+<% if BigPictureController.portfolio_tracker.nil? %>
+  <p class="nodata"><%= l(:bp_missing_tracker) %></p>
+<% else %>
+  <%= form_tag big_picture_path, method: :get, class: 'bp-filters' do %>
+    <%= hidden_field_tag :sort, @sort %>
+    <%= hidden_field_tag :dir, @dir %>
+    <%= text_field_tag :q, @filter[:q], placeholder: l(:bp_filter_name), size: 16 %>
+    <label class="bp-filter-label"><%= l(:bp_col_status) %></label>
+    <% st_multi = @filter[:status_ids].size > 1 %>
+    <span class="bp-ms">
+      <%= select_tag 'status_id[]',
+            options_for_select([[l(:bp_all), '']] + @filter_statuses.map { |s| [s.name, s.id.to_s] }, @filter[:status_ids].presence || ['']),
+            multiple: st_multi, size: (st_multi ? 4 : 1) %>
+      <span class="toggle-multiselect icon-only"><%= sprite_icon('') %></span>
+    </span>
+    <label class="bp-filter-label"><%= l(:bp_pm_label) %></label>
+    <% pm_multi = @filter[:pms].size > 1 %>
+    <span class="bp-ms">
+      <%= select_tag 'pm[]',
+            options_for_select([[l(:bp_all), '']] + @filter_users.map { |n, id| [n, id.to_s] }, @filter[:pms].presence || ['']),
+            multiple: pm_multi, size: (pm_multi ? 4 : 1) %>
+      <span class="toggle-multiselect icon-only"><%= sprite_icon('') %></span>
+    </span>
+    <label class="bp-filter-label"><%= l(:bp_col_idea_owner) %></label>
+    <% io_multi = @filter[:ios].size > 1 %>
+    <span class="bp-ms">
+      <%= select_tag 'io[]',
+            options_for_select([[l(:bp_all), '']] + @filter_users.map { |n, id| [n, id.to_s] }, @filter[:ios].presence || ['']),
+            multiple: io_multi, size: (io_multi ? 4 : 1) %>
+      <span class="toggle-multiselect icon-only"><%= sprite_icon('') %></span>
+    </span>
+    <%= select_tag :min_score, options_for_select([[l(:bp_filter_min_score), '']] + ['1', '1.5', '2', '2.5', '3'].map { |v| ["≥ #{v}", v] }, @filter[:min_score]) %>
+    <%= select_tag :min_ready, options_for_select([[l(:bp_filter_min_ready), '']] + ['25', '50', '75', '100'].map { |v| ["≥ #{v} %", v] }, @filter[:min_ready]) %>
+    <label class="bp-filter-label"><%= l(:bp_col_pe) %></label>
+    <%= select_tag :pe, options_for_select([[l(:bp_filter_pe_both), ''], [l(:bp_pe_yes), 'yes'], [l(:bp_pe_no), 'no']], @filter[:pe]) %>
+    <%= submit_tag l(:bp_filter_apply), name: nil %>
+    <%= link_to l(:bp_filter_reset), big_picture_path %>
+  <% end %>
+
+  <% total = @groups.values.sum(&:size) %>
+  <% if total.zero? %>
+    <p class="nodata"><%= l(:bp_no_projects) %></p>
+  <% else %>
+    <table class="list bp-priorities">
+      <thead>
+        <tr>
+          <th><%= l(:bp_col_project) %></th><th><%= l(:bp_col_idea_owner) %></th>
+          <th class="bp-num"><%= bp_sort_link(l(:bp_col_opp_score), 'opp') %></th>
+          <th class="bp-num"><%= bp_sort_link(l(:bp_col_dev_ready), 'ready') %></th>
+          <th class="bp-num"><%= l(:bp_col_pe) %></th>
+          <th><%= bp_sort_link(l(:bp_col_status), 'status') %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @group_order.each do |pm| %>
+          <tr class="bp-group"><td colspan="6"><%= l(:bp_pm_label) %>: <strong><%= pm %></strong> <span class="bp-group-count">(<%= @groups[pm].size %>)</span></td></tr>
+          <% @groups[pm].each do |issue| %>
+            <% m = @metrics[issue.id]; ts = m&.total_score; dr = m&.dev_readiness %>
+            <tr>
+              <td><%= link_to issue.subject, big_picture_issue_path(issue) %></td>
+              <td><%= bp_loaded_user(issue, @cf_ids[:idea_owner], @user_names) %></td>
+              <td class="bp-num"><strong><%= ts ? ('%.2f' % ts) : '–' %></strong></td>
+              <td class="bp-num">
+                <% if dr %>
+                  <div class="bp-bar">
+                    <div class="bp-bar-fill" style="width: <%= dr %>%; background: <%= bp_readiness_color(dr) %>;"></div>
+                    <span class="bp-bar-label"><%= dr %> %</span>
+                  </div>
+                <% else %>–<% end %>
+              </td>
+              <td class="bp-num">
+                <% if bp_loaded_value(issue, @cf_ids[:evidence]).present? %>
+                  <span class="bp-pe-yes" title="Project evidence">✓</span>
+                <% else %>
+                  <span class="bp-pe-no" title="Project evidence">✗</span>
+                <% end %>
+              </td>
+              <td>
+                <span class="bp-status" style="background: <%= bp_status_color(issue.status.name) %>;"><%= issue.status.name %></span>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+    <p class="bp-count"><%= l(:bp_count_projects, count: total) %></p>
+  <% end %>
+<% end %>

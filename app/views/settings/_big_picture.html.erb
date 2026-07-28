@@ -1,0 +1,27 @@
+<div class="box tabular settings">
+  <p>
+    <label for="tracker_id"><%= l(:bp_settings_tracker) %></label>
+    <%= select_tag 'settings[tracker_id]',
+          options_from_collection_for_select(Tracker.sorted, :id, :name, settings['tracker_id'].to_i),
+          include_blank: true %>
+    <em class="info"><%= l(:bp_settings_tracker_hint) %></em>
+  </p>
+  <p>
+    <label for="developer_role_ids"><%= l(:bp_settings_dev_roles) %></label>
+    <%= hidden_field_tag 'settings[developer_role_ids][]', '' %>
+    <%= select_tag 'settings[developer_role_ids][]',
+          options_from_collection_for_select(Role.givable, :id, :name, Array(settings['developer_role_ids']).reject(&:blank?).map(&:to_i)),
+          multiple: true, size: 6 %>
+    <em class="info"><%= l(:bp_settings_dev_roles_hint) %></em>
+  </p>
+  <p>
+    <label for="stakeholders"><%= l(:bp_settings_stakeholders) %></label>
+    <%= text_area_tag 'settings[stakeholders]', settings['stakeholders'], rows: 9, cols: 40 %>
+    <em class="info"><%= l(:bp_settings_stakeholders_hint) %></em>
+  </p>
+  <p>
+    <label for="phases"><%= l(:bp_settings_phases) %></label>
+    <%= text_area_tag 'settings[phases]', settings['phases'], rows: 8, cols: 40 %>
+    <em class="info"><%= l(:bp_settings_phases_hint) %></em>
+  </p>
+</div>

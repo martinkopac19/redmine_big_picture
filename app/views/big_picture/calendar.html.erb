@@ -1,0 +1,95 @@
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'big_picture', plugin: 'redmine_big_picture' %>
+  <%= javascript_include_tag 'big_picture', plugin: 'redmine_big_picture' %>
+<% end %>
+
+<div class="bp-nav">
+  <h2>Big Picture &ndash; <%= l(:bp_calendar) %></h2>
+  <%= link_to "&laquo; #{l(:bp_priorities)}".html_safe, big_picture_path, class: 'bp-navlink' %>
+</div>
+
+<%= form_tag big_picture_add_allocation_path, method: :post, class: 'bp-cal-add' do %>
+  <%= select_tag :user_id, options_from_collection_for_select(@cal_users, :id, :name), include_blank: l(:bp_ph_programmer) %>
+  <input type="month" name="month" required />
+  <%= select_tag :issue_id, options_from_collection_for_select(@projects, :id, :subject), include_blank: l(:bp_ph_project) %>
+  <span class="bp-or"><%= l(:bp_or) %></span>
+  <%= text_field_tag :title, nil, placeholder: l(:bp_ph_freetext), size: 18 %>
+  <%= text_field_tag :label, nil, placeholder: l(:bp_ph_note), size: 16 %>
+  <%= submit_tag l(:bp_add_to_plan), name: nil %>
+<% end %>
+
+<% if @group_order.empty? %>
+  <p class="nodata"><%= l(:bp_no_allocations) %></p>
+<% else %>
+  <div class="bp-cal-scroll">
+  <table class="list bp-calendar" data-move-base="/big_picture/allocation/" data-anchor="<%= @anchor_key %>">
+    <thead>
+      <tr>
+        <th class="bp-cal-person">
+          <span class="bp-person-label"><%= l(:bp_person) %></span>
+          <%= link_to '−'.html_safe, big_picture_calendar_path(past: @past + 6, future: @future),
+                class: 'bp-morebtn', title: l(:bp_more_past) %>
+        </th>
+        <% @months.each do |m| %><th data-month="<%= m.strftime('%Y-%m') %>"><%= m.strftime('%m/%Y') %></th><% end %>
+        <th class="bp-cal-plus">
+          <%= link_to '+'.html_safe, big_picture_calendar_path(past: @past, future: @future + 6),
+                class: 'bp-morebtn', title: l(:bp_more_future) %>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @group_order.each do |pm| %>
+        <tr class="bp-group"><td colspan="<%= @months.size + 2 %>"><%= l(:bp_pm_label) %>: <strong><%= pm %></strong></td></tr>
+        <% @grid[pm].each do |uid| %>
+          <tr>
+            <td class="bp-cal-user">
+              <div class="bp-cap-name"><%= @names[uid] %></div>
+              <% cap = @capacities[uid] %>
+              <% if @can_manage || cap&.content.present? %>
+                <details class="bp-cap-edit">
+                  <summary><%= l(:bp_cap_edit) %></summary>
+                  <div class="bp-cap-form">
+                    <%= text_area_tag 'content', cap&.content,
+                          rows: 1,
+                          class: "bp-autogrow#{' bp-cap-autosave' if @can_manage}",
+                          data: (@can_manage ? { url: big_picture_update_capacity_path, user: uid } : {}),
+                          readonly: !@can_manage %>
+                  </div>
+                </details>
+              <% end %>
+            </td>
+            <% @months.each do |m| %>
+              <% key = m.strftime('%Y-%m') %>
+              <td class="bp-cal-cell" data-user="<%= uid %>" data-month="<%= key %>">
+                <% @cells[uid][key].each do |a| %>
+                  <div class="bp-chip <%= 'bp-chip-free' if a.free_text? %>" draggable="true" data-alloc-id="<%= a.id %>"
+                       style="background: <%= a.issue ? bp_status_color(a.issue.status.name) : '#f9a825' %>;">
+                    <span class="bp-chip-main">
+                      <% if a.issue %>
+                        <%= link_to a.issue.subject, big_picture_issue_path(a.issue) %>
+                      <% else %>
+                        <span class="bp-chip-title"><%= a.title %></span>
+                      <% end %>
+                      <% if a.label.present? %><span class="bp-chip-note"><%= a.label %></span><% end %>
+                    </span>
+                    <span class="bp-chip-actions">
+                      <%= button_to '⧉', big_picture_duplicate_allocation_path(a), method: :post,
+                                    form_class: 'bp-chip-dup', title: l(:bp_duplicate),
+                                    data: { confirm: l(:bp_confirm_duplicate) } %>
+                      <%= button_to '×', big_picture_remove_allocation_path(a), method: :delete,
+                                    form_class: 'bp-chip-del', title: l(:bp_remove),
+                                    data: { confirm: l(:bp_confirm_remove) } %>
+                    </span>
+                  </div>
+                <% end %>
+              </td>
+            <% end %>
+            <td class="bp-cal-plus"></td>
+          </tr>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+  </div>
+  <p class="bp-hint"><%= l(:bp_drag_hint) %></p>
+<% end %>
