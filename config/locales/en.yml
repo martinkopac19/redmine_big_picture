@@ -56,6 +56,8 @@ en:
   bp_cap_show: "Show capacity"
   bp_cap_edit: "Show/edit capacity"
   bp_cap_save: "Save"
+  bp_settings_hidden: "Hide plugin"
+  bp_settings_hidden_hint: "Removes the Big Picture link from the header. This is NOT a disable — the tracker, the custom fields (Idea owner, Project evidence and the rest), the scores and all data stay untouched, and unticking this puts everything back exactly as it was. The pages remain reachable by direct URL."
   bp_settings_tracker: "Big Picture tracker"
   bp_settings_tracker_hint: "Issue tracker whose issues are portfolio projects."
   bp_settings_dev_roles: "Developer roles"

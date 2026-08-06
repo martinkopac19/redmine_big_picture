@@ -56,6 +56,8 @@ sk:
   bp_cap_show: "Zobraziť kapacitu"
   bp_cap_edit: "Zobraziť/upraviť kapacitu"
   bp_cap_save: "Uložiť"
+  bp_settings_hidden: "Skryť plugin"
+  bp_settings_hidden_hint: "Odkaz Big Picture zmizne z hlavičky. NIE JE to vypnutie — tracker, vlastné polia (Idea owner, Project evidence a ďalšie), skóre ani žiadne dáta sa nemažú a po odškrtnutí je všetko presne tam, kde bolo. Stránky zostávajú dostupné cez priamu URL."
   bp_settings_tracker: "Tracker pre Big Picture"
   bp_settings_tracker_hint: "Tracker, ktorého úlohy sú portfólio projekty."
   bp_settings_dev_roles: "Roly programátorov"

@@ -1,5 +1,13 @@
 <div class="box tabular settings">
   <p>
+    <%# hidden_field pred checkboxom: neodškrtnutý checkbox sa neposiela vôbec,
+        takže bez neho by sa hodnota '0' nikdy neuložila. %>
+    <label for="hidden"><%= l(:bp_settings_hidden) %></label>
+    <%= hidden_field_tag 'settings[hidden]', '0' %>
+    <%= check_box_tag 'settings[hidden]', '1', settings['hidden'].to_s == '1' %>
+    <em class="info"><%= l(:bp_settings_hidden_hint) %></em>
+  </p>
+  <p>
     <label for="tracker_id"><%= l(:bp_settings_tracker) %></label>
     <%= select_tag 'settings[tracker_id]',
           options_from_collection_for_select(Tracker.sorted, :id, :name, settings['tracker_id'].to_i),

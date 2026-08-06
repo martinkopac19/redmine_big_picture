@@ -16,7 +16,10 @@ def check(label, expected, actual)
   end
 end
 
-tracker = Tracker.find_by(name: 'Portfolio project') or abort('Tracker Portfolio project chýba – spustite seed.')
+# Tracker berieme z nastavení pluginu (RedmineBigPicture.tracker pozná aj staré
+# názvy). Pevné 'Portfolio project' tu bolo natvrdo a test sa po premenovaní
+# trackera na 'Big Picture' vôbec nespustil.
+tracker = RedmineBigPicture.tracker or abort('Tracker pre Big Picture chýba – nastavte ho v konfigurácii pluginu alebo spustite seed.')
 proj = Project.find(19)
 admin = User.where(admin: true).first
 User.current = admin
@@ -88,6 +91,45 @@ puts '== Scenár: audit v histórii (journal) =='
 before = issue.journals.count
 set_scores(issue, sh, [1, 3, 3, 3, nil, nil, nil, nil]) # prvý stakeholder 3 -> 1
 check('pribudol aspoň 1 journal', true, issue.reload.journals.count > before)
+
+puts '== Scenár: Hide plugin (skrytie z hlavičky, bez mazania dát) =='
+orig_settings = Setting.plugin_redmine_big_picture
+begin
+  base = Setting.plugin_redmine_big_picture.to_h
+  ApplicationController.prepend(Module.new { define_method(:user_setup) { User.current = admin } })
+  sess = ActionDispatch::Integration::Session.new(Rails.application)
+  # Hľadáme PRESNE odkaz v menu. Pozor: samotný text „Big Picture" je aj názvom
+  # trackera v zoznamoch úloh, takže hľadanie podľa textu by vždy našlo zhodu.
+  link = ->(html) { html.include?('<a class="big-picture" href="/big_picture">') }
+
+  # Čo musí skrytie prežiť.
+  bp_tracker = RedmineBigPicture.tracker
+  snapshot = lambda do
+    { tracker: bp_tracker&.id,
+      issues: (bp_tracker ? Issue.where(tracker_id: bp_tracker.id).count : 0),
+      cfs: CustomField.where(name: ['Idea owner', 'Project evidence']).count,
+      scores: BpScore.count, phases: BpPhase.count,
+      metrics: BpProjectMetric.count, allocations: BpAllocation.count }
+  end
+  before_snapshot = snapshot.call
+
+  Setting.plugin_redmine_big_picture = base.merge('hidden' => '0')
+  sess.get '/my/page'
+  check('viditeľný: odkaz je v hlavičke', true, link.call(sess.response.body))
+
+  Setting.plugin_redmine_big_picture = base.merge('hidden' => '1')
+  sess.get '/my/page'
+  check('skrytý: odkaz zmizol', false, link.call(sess.response.body))
+  sess.get '/big_picture'
+  check('skrytý: priama URL stále funguje', 200, sess.response.status)
+  check('skrytie nič nezmazalo', before_snapshot, snapshot.call)
+
+  Setting.plugin_redmine_big_picture = base.merge('hidden' => '0')
+  sess.get '/my/page'
+  check('odškrtnuté: odkaz je späť', true, link.call(sess.response.body))
+ensure
+  Setting.plugin_redmine_big_picture = orig_settings
+end
 
 # upratanie
 issue.destroy

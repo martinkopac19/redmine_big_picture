@@ -6,6 +6,14 @@ module RedmineBigPicture
 
   module_function
 
+  # Skrytie pluginu = odkaz "Big Picture" zmizne z hlavičky. NIE JE to vypnutie:
+  # tracker, vlastné polia (Idea owner, Project evidence…), skóre ani dáta sa
+  # nikam nestratia a nič sa nemaže. Slúži to na to, aby sa dal plugin nechať
+  # nainštalovaný a pripravený, len bez toho, aby ho tím videl v menu.
+  def hidden?
+    plugin_settings['hidden'].to_s == '1'
+  end
+
   # Stakeholderi z nastavení pluginu (jeden na riadok), inak defaulty.
   def stakeholders
     parse_setting('stakeholders', DEFAULT_STAKEHOLDERS)
