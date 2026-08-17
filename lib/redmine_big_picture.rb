@@ -1,6 +1,6 @@
 module RedmineBigPicture
   # Predvolené zoznamy (fallback, keď nastavenia nie sú vyplnené).
-  DEFAULT_STAKEHOLDERS = ['CEO & CPO', 'CZ & SK', 'CTO', 'PM & UX', 'CC', 'HU', 'PL', 'RO'].freeze
+  DEFAULT_STAKEHOLDERS = ['Management', 'Product', 'Engineering', 'Sales', 'Support'].freeze
   DEFAULT_PHASES = ['Data analysis', 'Competition analysis', 'Business analysis',
                     'Development analysis', 'Wireframes', 'Prototype testing', 'Redmine issues'].freeze
 
